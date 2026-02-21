@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Data files
+*.h5
+*.hdf5
+tick_data.h5
+
+# Logs and output files
+*.log
+heartbeat.log
+*.csv
+trade_log.csv
+fills.csv
+
+# LaTeX compilation artifacts
+*.aux
+*.log
+*.out
+*.pdf
+missfont.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Compiled PDFs (keep source .tex)
+main.pdf
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
