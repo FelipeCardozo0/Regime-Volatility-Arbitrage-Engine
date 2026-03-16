@@ -33,10 +33,19 @@ fills.csv
 
 # LaTeX compilation artifacts
 *.aux
-*.log
 *.out
-*.pdf
 missfont.log
+
+# Paper build artifacts
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.synctex.gz
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.bbl
+paper/*.blg
+paper/*.pdf
 
 # OS
 .DS_Store

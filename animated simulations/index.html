@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Regime Volatility Arbitrage Engine — Animated Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --infra: #1a237e;
+      --infra-bg: #1e2a4a;
+      --strategy: #1b5e20;
+      --strategy-bg: #1e3a24;
+      --math: #4a148c;
+      --math-bg: #2d1b4e;
+      --risk: #bf360c;
+      --risk-bg: #4a2512;
+      --exec: #006064;
+      --exec-bg: #0d3d40;
+      --health: #37474f;
+      --health-bg: #263238;
+      --pulse: #00e676;
+      --flow-dot: #40c4ff;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      overflow-x: hidden;
+    }
+
+    header {
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    header .subtitle {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .controls label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .controls input[type="range"] {
+      width: 100px;
+      accent-color: var(--pulse);
+    }
+    .controls button {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.85rem;
+    }
+    .controls button:hover {
+      background: var(--border);
+    }
+
+    main {
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .diagram {
+      position: relative;
+      min-height: 720px;
+      background: radial-gradient(ellipse at 50% 50%, #161b22 0%, #0d1117 70%);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .layer {
+      position: absolute;
+      border-radius: 10px;
+      border: 1px solid;
+      padding: 0.5rem 0.75rem;
+    }
+    .layer-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.9;
+      margin-bottom: 0.25rem;
+    }
+
+    .node {
+      position: absolute;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.8rem;
+      font-family: 'JetBrains Mono', monospace;
+      border: 2px solid;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .node:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+    .node .name { font-weight: 600; display: block; margin-bottom: 0.2rem; }
+    .node .detail { font-size: 0.7rem; opacity: 0.85; }
+
+    .flow-path {
+      position: absolute;
+      pointer-events: none;
+      overflow: visible;
+    }
+    .flow-path line {
+      stroke-width: 2;
+      stroke-dasharray: 8 6;
+      stroke: var(--border);
+      opacity: 0.6;
+    }
+    .flow-dot {
+      fill: var(--flow-dot);
+      animation: flow 2s linear infinite;
+    }
+    .flow-path.dash line { stroke-dasharray: 4 8; stroke: var(--muted); }
+    @keyframes flow {
+      to { stroke-dashoffset: -28; }
+    }
+    @keyframes moveAlongPath {
+      to { offset-distance: 100%; }
+    }
+
+    .path-label {
+      position: absolute;
+      font-size: 0.65rem;
+      color: var(--muted);
+      background: var(--panel);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    /* Layout positions (percent of diagram) */
+    .ibkr { left: 8%; top: 12%; width: 140px; border-color: var(--muted); background: var(--panel); }
+    .conn-mgr { left: 28%; top: 8%; width: 180px; border-color: #3949ab; background: var(--infra-bg); }
+    .tick-queue { left: 28%; top: 28%; width: 130px; border-color: #3949ab; background: var(--infra-bg); }
+    .hdf5 { left: 28%; top: 42%; width: 130px; border-color: #3949ab; background: var(--infra-bg); }
+    .orch { left: 52%; top: 22%; width: 180px; border-color: #388e3c; background: var(--strategy-bg); }
+    .pricing { left: 52%; top: 8%; width: 180px; border-color: #7b1fa2; background: var(--math-bg); }
+    .regime { left: 52%; top: 38%; width: 180px; border-color: #e64a19; background: var(--risk-bg); }
+    .signal-gen { left: 72%; top: 22%; width: 160px; border-color: #388e3c; background: var(--strategy-bg); }
+    .exec { left: 88%; top: 18%; width: 160px; border-color: #00838f; background: var(--exec-bg); }
+    .chase { left: 88%; top: 32%; width: 160px; border-color: #00838f; background: var(--exec-bg); }
+    .fills { left: 88%; top: 48%; width: 120px; border-color: #00838f; background: var(--exec-bg); }
+    .health { left: 50%; top: 58%; width: 160px; border-color: #607d8b; background: var(--health-bg); }
+
+    .infra-layer { left: 22%; top: 4%; width: 22%; min-height: 52%; border-color: #3949ab; background: rgba(26,35,126,0.15); }
+    .strategy-layer { left: 48%; top: 4%; width: 28%; min-height: 48%; border-color: #388e3c; background: rgba(27,94,32,0.12); }
+    .math-layer { left: 48%; top: 4%; width: 24%; height: 18%; border-color: #7b1fa2; background: rgba(74,20,140,0.12); }
+    .risk-layer { left: 48%; top: 34%; width: 24%; height: 18%; border-color: #e64a19; background: rgba(191,54,12,0.12); }
+    .exec-layer { left: 84%; top: 4%; width: 14%; min-height: 52%; border-color: #00838f; background: rgba(0,96,100,0.15); }
+    .health-layer { left: 46%; top: 54%; width: 28%; height: 20%; border-color: #607d8b; background: rgba(55,71,79,0.15); }
+
+    .pulse-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid var(--pulse);
+      animation: pulse-ring 2s ease-out infinite;
+      opacity: 0;
+      pointer-events: none;
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.6; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    .legend {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 0.5rem; }
+    .legend .swatch { width: 14px; height: 14px; border-radius: 4px; }
+
+    footer {
+      margin-top: 2rem;
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Regime Volatility Arbitrage Engine</h1>
+      <p class="subtitle">Animated architecture — data flow and layers</p>
+    </div>
+    <div class="controls">
+      <label>
+        Speed
+        <input type="range" id="speed" min="0.3" max="2" step="0.1" value="1">
+      </label>
+      <button type="button" id="pause">Pause</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="diagram" id="diagram">
+      <!-- Layer backgrounds (labels only, styling via .layer) -->
+      <div class="layer infra-layer"><span class="layer-title">Infrastructure — connection_manager.py</span></div>
+      <div class="layer strategy-layer"><span class="layer-title">Strategy — orchestrator.py</span></div>
+      <div class="layer math-layer"><span class="layer-title">Math — pricing_engine.py</span></div>
+      <div class="layer risk-layer"><span class="layer-title">Risk — regime_filter.py</span></div>
+      <div class="layer exec-layer"><span class="layer-title">Execution — execution_handler.py</span></div>
+      <div class="layer health-layer"><span class="layer-title">Monitoring — main.py</span></div>
+
+      <!-- Nodes -->
+      <div class="node ibkr" id="n-ibkr">
+        <span class="name">IBKR TWS</span>
+        <span class="detail">port 7497 / 7496</span>
+      </div>
+      <div class="node conn-mgr" id="n-conn">
+        <span class="name">ConnectionManager</span>
+        <span class="detail">EWrapper + EClient · ibkr-reader · Rate limiter</span>
+      </div>
+      <div class="node tick-queue" id="n-queue">
+        <span class="name">tick_queue</span>
+        <span class="detail">Queue[TickEvent] · 50k cap</span>
+      </div>
+      <div class="node hdf5" id="n-hdf5">
+        <span class="name">HDF5 Store</span>
+        <span class="detail">tick_data.h5 · batch 100ms</span>
+      </div>
+      <div class="node orch" id="n-orch">
+        <span class="name">StrategyOrchestrator</span>
+        <span class="detail">MarketState · 10ms poll · 5s pricing</span>
+      </div>
+      <div class="node pricing" id="n-pricing">
+        <span class="name">PricingEngine</span>
+        <span class="detail">Hybrid Scheme MC · Numba · 2k paths</span>
+      </div>
+      <div class="node regime" id="n-regime">
+        <span class="name">RegimeFilter</span>
+        <span class="detail">Gaussian HMM · Baum-Welch · P(Turb)</span>
+      </div>
+      <div class="node signal-gen" id="n-signal">
+        <span class="name">Signal Generator</span>
+        <span class="detail">IV spread · Kelly · Logic tree</span>
+      </div>
+      <div class="node exec" id="n-exec">
+        <span class="name">ExecutionHandler</span>
+        <span class="detail">clientId=2 · placeOrder / modify</span>
+      </div>
+      <div class="node chase" id="n-chase">
+        <span class="name">Chase Algorithm</span>
+        <span class="detail">Limit @ mid · 10s step · 5 steps</span>
+      </div>
+      <div class="node fills" id="n-fills">
+        <span class="name">fills.csv</span>
+        <span class="detail">Audit trail</span>
+      </div>
+      <div class="node health" id="n-health">
+        <span class="name">SystemHealthMonitor</span>
+        <span class="detail">Heartbeat 60s · SLA 99%</span>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><span class="swatch" style="background:#1e2a4a;border:1px solid #3949ab"></span> Infrastructure</span>
+      <span><span class="swatch" style="background:#1e3a24;border:1px solid #388e3c"></span> Strategy</span>
+      <span><span class="swatch" style="background:#2d1b4e;border:1px solid #7b1fa2"></span> Pricing (Math)</span>
+      <span><span class="swatch" style="background:#4a2512;border:1px solid #e64a19"></span> Regime (Risk)</span>
+      <span><span class="swatch" style="background:#0d3d40;border:1px solid #00838f"></span> Execution</span>
+      <span><span class="swatch" style="background:#263238;border:1px solid #607d8b"></span> Health</span>
+    </div>
+  </main>
+
+  <footer>
+    Data flow: IBKR → ConnectionManager → tick_queue (drain to Orchestrator) + HDF5. Orchestrator calls PricingEngine and RegimeFilter every 5s → Signal Generator → ExecutionHandler → Chase → TWS. Health monitor receives ConnStatus and signal count.
+  </footer>
+
+  <script>
+    (function () {
+      const diagram = document.getElementById('diagram');
+      const speedInput = document.getElementById('speed');
+      const pauseBtn = document.getElementById('pause');
+      let paused = false;
+      let speed = 1;
+
+      function getRect(id) {
+        const el = diagram.querySelector('#' + id);
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        const d = diagram.getBoundingClientRect();
+        return {
+          cx: (r.left - d.left + r.width / 2),
+          cy: (r.top - d.top + r.height / 2),
+          right: r.right - d.left,
+          left: r.left - d.left,
+          top: r.top - d.top,
+          bottom: r.bottom - d.top,
+        };
+      }
+
+      function addFlowPath(fromId, toId, label, dash) {
+        const fromR = getRect(fromId);
+        const toR = getRect(toId);
+        if (!fromR || !toR) return;
+
+        const w = diagram.offsetWidth;
+        const h = diagram.offsetHeight;
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        path.setAttribute('class', 'flow-path' + (dash ? ' dash' : ''));
+        path.setAttribute('width', '100%');
+        path.setAttribute('height', '100%');
+        path.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+        path.setAttribute('preserveAspectRatio', 'none');
+        path.style.position = 'absolute';
+        path.style.left = '0';
+        path.style.top = '0';
+        path.style.width = '100%';
+        path.style.height = '100%';
+        path.style.pointerEvents = 'none';
+
+        const dx = toR.cx - fromR.cx;
+        const dy = toR.cy - fromR.cy;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        const ux = dx / len;
+        const uy = dy / len;
+        const offset = 28;
+        const x1 = fromR.cx + ux * offset;
+        const y1 = fromR.cy + uy * offset;
+        const x2 = toR.cx - ux * offset;
+        const y2 = toR.cy - uy * offset;
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x1);
+        line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2);
+        line.setAttribute('y2', y2);
+        path.appendChild(line);
+
+        const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        dot.setAttribute('r', 5);
+        dot.setAttribute('class', 'flow-dot');
+        dot.setAttribute('fill', '#40c4ff');
+        path.appendChild(dot);
+
+        diagram.appendChild(path);
+
+        function animateDot() {
+          if (paused) {
+            requestAnimationFrame(animateDot);
+            return;
+          }
+          const fromR = getRect(fromId);
+          const toR = getRect(toId);
+          if (!fromR || !toR) {
+            requestAnimationFrame(animateDot);
+            return;
+          }
+          const dx = toR.cx - fromR.cx;
+          const dy = toR.cy - fromR.cy;
+          const t = (Date.now() / (2000 / speed)) % 1;
+          const x = fromR.cx + dx * t;
+          const y = fromR.cy + dy * t;
+          dot.setAttribute('cx', x);
+          dot.setAttribute('cy', y);
+          requestAnimationFrame(animateDot);
+        }
+        animateDot();
+      }
+
+      function addAllFlows() {
+        addFlowPath('n-ibkr', 'n-conn');
+        addFlowPath('n-conn', 'n-queue');
+        addFlowPath('n-conn', 'n-hdf5');
+        addFlowPath('n-queue', 'n-orch');
+        addFlowPath('n-orch', 'n-pricing');
+        addFlowPath('n-orch', 'n-regime');
+        addFlowPath('n-pricing', 'n-signal');
+        addFlowPath('n-regime', 'n-signal');
+        addFlowPath('n-signal', 'n-exec');
+        addFlowPath('n-exec', 'n-chase');
+        addFlowPath('n-chase', 'n-ibkr');
+        addFlowPath('n-exec', 'n-fills');
+        addFlowPath('n-conn', 'n-health', null, true);
+        addFlowPath('n-orch', 'n-health', null, true);
+      }
+
+      function pulseNode(id) {
+        const el = diagram.querySelector('#' + id);
+        if (!el) return;
+        const ring = document.createElement('div');
+        ring.className = 'pulse-ring';
+        const r = el.getBoundingClientRect();
+        const d = diagram.getBoundingClientRect();
+        ring.style.width = Math.max(r.width, r.height) + 8 + 'px';
+        ring.style.height = ring.style.width;
+        ring.style.left = (r.left - d.left - 4) + 'px';
+        ring.style.top = (r.top - d.top - 4) + 'px';
+        diagram.appendChild(ring);
+        setTimeout(function () { ring.remove(); }, 2000);
+      }
+
+      speedInput.addEventListener('input', function () { speed = parseFloat(this.value); });
+      pauseBtn.addEventListener('click', function () {
+        paused = !paused;
+        this.textContent = paused ? 'Resume' : 'Pause';
+      });
+
+      function initFlows() {
+        diagram.querySelectorAll('.flow-path').forEach(function (el) { el.remove(); });
+        addAllFlows();
+      }
+
+      setTimeout(initFlows, 100);
+      if (typeof ResizeObserver !== 'undefined') {
+        var ro = new ResizeObserver(function () { initFlows(); });
+        ro.observe(diagram);
+      }
+
+      setInterval(function () {
+        if (paused) return;
+        const nodes = ['n-queue', 'n-orch', 'n-signal', 'n-exec'];
+        pulseNode(nodes[Math.floor(Math.random() * nodes.length)]);
+      }, 3000);
+    })();
+  </script>
+</body>
+</html>

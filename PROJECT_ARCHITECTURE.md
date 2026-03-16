@@ -1,6 +1,9 @@
 # Project Rough-Regime: Volatility Arbitrage Engine
 ## Architecture & Technical Reference
 
+> For a high-level overview, quickstart, and key results, see the [README](README.md).  
+> For the full mathematical framework and empirical findings, see the paper in `paper/main.tex` (PDF built locally as `paper/main.pdf`).
+
 > **Document version:** 1.0 — February 2025
 > **Maintainer:** Quantitative Research Team
 > **Status:** Production-Ready (Paper Trading)

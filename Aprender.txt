@@ -1,0 +1,33 @@
+
+Davis Harte exact spectral method: Circulant Embedding: Construct a circulant matrix by embedding the covariance values . For a series of length , this typically involves creating a sequence of length or larger to avoid circular wrapping artifacts.
+
+Simulate: Generate independent Gaussian random variables, transform them using the FFT, and take the real part (or use specialized methods to get both real and imaginary components) to produce the time series.
+
+For BM, Simualted Gaussian noise is cumulatively summed
+
+consider email no topo do artigo com link
+
+
+A complex GP is a stochastic process where any finite collection of observations forms a complex multivariate Gaussian distribution. If z(x) is a complex GP, it can be decomposed as:
+
+test: ✅ Markovian vs non-Markovian
+
+✅ Short-memory vs long-memory
+
+✅ Constant vs stochastic volatility
+
+Black–Scholes
+
+Heston
+
+Dupire (Local Volatility)
+
+Merton Jump–Diffusion
+
+GARCH
+
+FIGARCH
+
+Rough Bergomi
+
+Classical Bergomi

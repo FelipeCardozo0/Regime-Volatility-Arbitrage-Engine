@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Decision Logic — Regime Volatility Arbitrage Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --hold: #8b949e;
+      --enter: #00e676;
+      --hedge: #ffab00;
+      --close: #ff5252;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+    }
+    header {
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 { margin: 0; font-size: 1.2rem; font-family: 'JetBrains Mono', monospace; }
+    header p { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.9rem; }
+    main { padding: 2rem; max-width: 900px; margin: 0 auto; }
+
+    .tree {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+    }
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 0.75rem;
+      padding: 0.6rem 1rem;
+      background: var(--panel);
+      border-radius: 8px;
+      border-left: 4px solid var(--muted);
+      opacity: 0.5;
+      transition: opacity 0.4s, border-color 0.3s, background 0.3s;
+    }
+    .step.active {
+      opacity: 1;
+      background: rgba(22,27,34,0.95);
+    }
+    .step.enter { border-left-color: var(--enter); }
+    .step.hedge { border-left-color: var(--hedge); }
+    .step.close { border-left-color: var(--close); }
+    .step.hold { border-left-color: var(--hold); }
+    .step .num {
+      flex-shrink: 0;
+      width: 1.8rem;
+      height: 1.8rem;
+      line-height: 1.8rem;
+      text-align: center;
+      border-radius: 50%;
+      background: var(--border);
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .step.active .num { background: var(--pulse, #00e676); color: var(--bg); }
+    .step .cond { color: var(--muted); }
+    .step .action { font-weight: 600; margin-top: 0.2rem; }
+    .step .action.enter { color: var(--enter); }
+    .step .action.hedge { color: var(--hedge); }
+    .step .action.close { color: var(--close); }
+
+    .controls {
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    .controls button {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.85rem;
+    }
+    .controls button:hover { background: var(--border); }
+    .summary {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: var(--panel);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Decision logic tree</h1>
+    <p>Priority-ordered checks in <code>_evaluate_and_emit()</code>. First match wins.</p>
+  </header>
+  <main>
+    <div class="controls">
+      <button type="button" id="play">Play</button>
+      <button type="button" id="reset">Reset</button>
+    </div>
+    <div class="tree" id="tree">
+      <div class="step" data-action="close" data-id="1">
+        <span class="num">1</span>
+        <div>
+          <div class="cond">Position open and unrealised PnL &lt; −max_loss_pct × entry cost</div>
+          <div class="action close">→ STOP_LOSS (CLOSE_ALL)</div>
+        </div>
+      </div>
+      <div class="step" data-action="close" data-id="2">
+        <span class="num">2</span>
+        <div>
+          <div class="cond">Position open and holding_days &gt; max_hold_days</div>
+          <div class="action close">→ CLOSE_ALL (time exit)</div>
+        </div>
+      </div>
+      <div class="step" data-action="close" data-id="3">
+        <span class="num">3</span>
+        <div>
+          <div class="cond">P(Turbulent) &gt; 0.80</div>
+          <div class="action close">→ CLOSE_ALL or HOLD (stay flat)</div>
+        </div>
+      </div>
+      <div class="step" data-action="hedge" data-id="4">
+        <span class="num">4</span>
+        <div>
+          <div class="cond">0.60 &lt; P(Turbulent) ≤ 0.80</div>
+          <div class="action hedge">→ DELTA_HEDGE or HOLD (no entry)</div>
+        </div>
+      </div>
+      <div class="step" data-action="close" data-id="5">
+        <span class="num">5</span>
+        <div>
+          <div class="cond">Position open and IV spread &lt; iv_exit_threshold</div>
+          <div class="action close">→ CLOSE_ALL (alpha gone)</div>
+        </div>
+      </div>
+      <div class="step" data-action="enter" data-id="6">
+        <span class="num">6</span>
+        <div>
+          <div class="cond">Regime = Calm and IV spread &gt; 2.0 vol pts and position FLAT</div>
+          <div class="action enter">→ ENTER_LONG</div>
+        </div>
+      </div>
+      <div class="step" data-action="hold" data-id="7">
+        <span class="num">7</span>
+        <div>
+          <div class="cond">No trigger</div>
+          <div class="action hold">→ HOLD</div>
+        </div>
+      </div>
+    </div>
+    <div class="summary">
+      <strong>Edge:</strong> ENTER_LONG only when (Regime == Calm) and (σ_model − σ_market &gt; 2.0). CLOSE_ALL on turbulent regime, stop-loss, time exit, or spread compression.
+    </div>
+  </main>
+  <script>
+    (function () {
+      const steps = document.querySelectorAll('.step');
+      const playBtn = document.getElementById('play');
+      const resetBtn = document.getElementById('reset');
+      let current = 0;
+      let timer = null;
+      const interval = 2200;
+
+      function activate(i) {
+        steps.forEach(function (s, j) {
+          s.classList.remove('active');
+          s.classList.remove('enter', 'hedge', 'close', 'hold');
+          if (j === i) {
+            s.classList.add('active');
+            s.classList.add(s.dataset.action || 'hold');
+          }
+        });
+        current = i;
+      }
+
+      function tick() {
+        activate(current);
+        current = (current + 1) % steps.length;
+      }
+
+      function play() {
+        if (timer) return;
+        playBtn.textContent = 'Pause';
+        timer = setInterval(tick, interval);
+      }
+
+      function pause() {
+        if (timer) {
+          clearInterval(timer);
+          timer = null;
+          playBtn.textContent = 'Play';
+        }
+      }
+
+      function reset() {
+        pause();
+        current = 0;
+        steps.forEach(function (s) {
+          s.classList.remove('active', 'enter', 'hedge', 'close', 'hold');
+        });
+      }
+
+      playBtn.addEventListener('click', function () {
+        if (timer) pause();
+        else play();
+      });
+      resetBtn.addEventListener('click', reset);
+
+      activate(0);
+    })();
+  </script>
+</body>
+</html>
