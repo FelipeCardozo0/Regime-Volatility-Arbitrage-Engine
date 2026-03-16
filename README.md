@@ -190,10 +190,7 @@ In broad terms:
 - The G‑HMM reliably flags synthetic crisis regimes with lead time and high classification accuracy.
 - Most of the performance improvement is attributable to the **HMM traffic‑light** preventing long‑vol exposure during Turbulent regimes.
 
-#### Figures
-
-<details>
-<summary><strong>Click to expand key figures</strong></summary>
+#### Visuals (selected figures)
 
 **Roughness of volatility paths (fBM, Volterra)**  
 ![Roughness comparison](fbm_roughness.png)
@@ -210,7 +207,20 @@ In broad terms:
 **Transaction cost sensitivity of Sharpe ratio**  
 ![Transaction cost heatmap](transaction_cost_heatmap.png)
 
-</details>
+**Heston implied volatility surface**  
+![Heston surface](heston_surface.png)
+
+**SABR volatility smile and term structure**  
+![SABR smile](sabr_smile.png)
+
+**Dupire local volatility surface**  
+![Dupire local vol](dupire_local_vol.png)
+
+**Hawkes jump-diffusion simulation**  
+![Hawkes jump diffusion](hawkes_jump_diffusion.png)
+
+**HMM–Hawkes integration (regime and intensity)**  
+![HMM–Hawkes integration](hmm_hawkes_integration.png)
 
 ---
 
