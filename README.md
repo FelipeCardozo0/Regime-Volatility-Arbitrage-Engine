@@ -190,6 +190,28 @@ In broad terms:
 - The G‑HMM reliably flags synthetic crisis regimes with lead time and high classification accuracy.
 - Most of the performance improvement is attributable to the **HMM traffic‑light** preventing long‑vol exposure during Turbulent regimes.
 
+#### Figures
+
+<details>
+<summary><strong>Click to expand key figures</strong></summary>
+
+**Roughness of volatility paths (fBM, Volterra)**  
+![Roughness comparison](fbm_roughness.png)
+
+**Monte Carlo convergence of the Hybrid Scheme**  
+![Monte Carlo convergence](convergence_plot.png)
+
+**Regime detection map (Calm vs Turbulent)**  
+![Regime map](regime_map.png)
+
+**Strategy equity curves and drawdowns**  
+![Strategy performance](equity_curve.png)
+
+**Transaction cost sensitivity of Sharpe ratio**  
+![Transaction cost heatmap](transaction_cost_heatmap.png)
+
+</details>
+
 ---
 
 ### Decision Logic
